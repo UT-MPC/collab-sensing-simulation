@@ -15,8 +15,8 @@
 
 ### Experiment Scenarios
 
-Config: `simulations/env_austin/omnetpp.ini`
-Run Script: `simulations/env_austin/run.sh`
+Config: `simulations/scents/omnetpp.ini`
+Run Script: `simulations/scents/run.sh`
 
 ### Customize the simulation
 
