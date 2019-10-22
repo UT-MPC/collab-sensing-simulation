@@ -11,7 +11,6 @@
 #include "../linklayer_slack/Ieee802154Mac.h"
 #include "inet/applications/ethernet/EtherApp_m.h"
 #include "inet/common/ModuleAccess.h"
-#include "inet/common/lifecycle/NodeOperations.h"
 #include "inet/linklayer/common/Ieee802Ctrl.h"
 #include "inet/networklayer/common/InterfaceTable.h"
 #include "inet/common/ProtocolTag_m.h"
@@ -24,9 +23,6 @@ using inet::INITSTAGE_APPLICATION_LAYER;
 using inet::INITSTAGE_LOCAL;
 using inet::Ieee802MessageKind;
 using inet::LifecycleOperation;
-using inet::NodeCrashOperation;
-using inet::NodeShutdownOperation;
-using inet::NodeStartOperation;
 using inet::NodeStatus;
 using omnetpp::SimTime;
 using omnetpp::cMessage;
@@ -292,22 +288,8 @@ void BlendAgent::startEpoch() {
     sendBeacon();
 }
 
-bool BlendAgent::handleOperationStage(LifecycleOperation* operation, int stage,
+bool BlendAgent::handleOperationStage(LifecycleOperation* operation, /*int stage,*/
         IDoneCallback* doneCallback) {
-    Enter_Method_Silent();
-    if (dynamic_cast<NodeStartOperation *>(operation)) {
-        EV_INFO << "stage=STAGE_APPLICATION_LAYER, should start schedule packet now.\n";
-    }
-    else if (dynamic_cast<NodeShutdownOperation *>(operation)) {
-        if ((NodeShutdownOperation::Stage)stage == NodeShutdownOperation::STAGE_APPLICATION_LAYER)
-        cancelNextPacket();
-    }
-    else if (dynamic_cast<NodeCrashOperation *>(operation)) {
-        if ((NodeCrashOperation::Stage)stage == NodeCrashOperation::STAGE_CRASH)
-        cancelNextPacket();
-    }
-    else
-    throw cRuntimeError("Unsupported lifecycle operation '%s'", operation->getClassName());
     return true;
 }
 

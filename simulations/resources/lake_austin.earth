@@ -22,7 +22,7 @@ to extruded buildings.
 
     <external>
         <viewpoints>
-            <viewpoint name="Home" heading="-25" height="50" lat="42.355" long="-71.068" pitch="-90" range="480"/>
+            <viewpoint name="Home" heading="-25" height="50" lat="30.2810" long="-97.780" pitch="-90" range="480"/>
             <viewpoint name="Bird's eye" heading="24" height="50" lat="42.355" long="-71.068" pitch="-20" range="1000"/>
             <viewpoint name="Overview" heading="24.261" height="0" lat="42.34425" long="-71.076262" pitch="-21.6" range="3450"/>
             <viewpoint name="Downtown 1" heading="117" lat="42.3568" long="-71.0585" height="0" pitch="-20.4" range="1500" />

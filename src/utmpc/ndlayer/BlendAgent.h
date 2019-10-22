@@ -34,8 +34,8 @@ protected:
     // Node management
     virtual void initialize(int stage) override;
     virtual void handleMessage(omnetpp::cMessage *msg) override;
-    virtual bool handleOperationStage(inet::LifecycleOperation *operation,
-            int stage, inet::IDoneCallback *doneCallback) override;
+    virtual bool handleOperationStage(inet::LifecycleOperation *operation, /*int stage,*/
+            inet::IDoneCallback *doneCallback) override;
     virtual int numInitStages() const override {
         return inet::NUM_INIT_STAGES;
     }

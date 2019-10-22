@@ -236,7 +236,7 @@ void SensingApplication::initialize() {
     } else if (strategy == "optimized") {
         fulfiller_option = kOptionOptimized;
     } else {
-        error("[App] Invalid fulfiller strategy: %s.", strategy);
+        error("[App] Invalid fulfiller strategy: %s.", strategy.c_str());
     }
 
     // schedule start timer

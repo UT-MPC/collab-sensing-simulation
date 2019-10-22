@@ -67,7 +67,7 @@ void HumanWPMobility::readWaypointsFromFile(const char *fileName)
                 z = value3;
             }
             else {
-                Coord playgroundCoordinate = geographic_coordinate_system_->computePlaygroundCoordinate(GeoCoord(inet::deg(value1), inet::deg(value2), inet::m(value3)));
+                Coord playgroundCoordinate = geographic_coordinate_system_->computeSceneCoordinate(GeoCoord(inet::deg(value1), inet::deg(value2), inet::m(value3)));
                 x = playgroundCoordinate.x;
                 y = playgroundCoordinate.y;
                 z = playgroundCoordinate.z;

@@ -113,9 +113,6 @@ void Ieee802154Mac::initialize(int stage)
         txAttempts = 0;
     }
     else if (stage == INITSTAGE_LINK_LAYER) {
-        initializeMacAddress();
-        registerInterface();
-
         cModule *radioModule = getModuleFromPar<cModule>(par("radioModule"), this);
         radioModule->subscribe(IRadio::radioModeChangedSignal, this);
         radioModule->subscribe(IRadio::transmissionStateChangedSignal, this);
@@ -161,39 +158,21 @@ Ieee802154Mac::~Ieee802154Mac()
     }
 }
 
-void Ieee802154Mac::initializeMacAddress()
+void Ieee802154Mac::configureInterfaceEntry()
 {
-    const char *addrstr = par("address");
-
-    if (!strcmp(addrstr, "auto")) {
-        // assign automatic address
-        address = MacAddress::generateAutoAddress();
-
-        // change module parameter from "auto" to concrete address
-        par("address").setStringValue(address.str().c_str());
-    }
-    else {
-        address.setAddress(addrstr);
-    }
-}
-
-InterfaceEntry *Ieee802154Mac::createInterfaceEntry()
-{
-    InterfaceEntry *e = getContainingNicModule(this);
+    MacAddress address = parseMacAddressParameter(par("address"));
 
     // data rate
-    e->setDatarate(bitrate);
+    interfaceEntry->setDatarate(bitrate);
 
     // generate a link-layer address to be used as interface token for IPv6
-    e->setMacAddress(address);
-    e->setInterfaceToken(address.formInterfaceIdentifier());
+    interfaceEntry->setMacAddress(address);
+    interfaceEntry->setInterfaceToken(address.formInterfaceIdentifier());
 
     // capabilities
-    e->setMtu(par("mtu"));
-    e->setMulticast(true);
-    e->setBroadcast(true);
-
-    return e;
+    interfaceEntry->setMtu(par("mtu"));
+    interfaceEntry->setMulticast(true);
+    interfaceEntry->setBroadcast(true);
 }
 
 /**
@@ -205,13 +184,13 @@ void Ieee802154Mac::handleUpperPacket(Packet *packet)
     auto macPkt = makeShared<Ieee802154MacHeader>();
     assert(headerLength % 8 == 0);
     macPkt->setChunkLength(b(headerLength));
+    
     macPkt->setDestAddr(MacAddress::BROADCAST_ADDRESS);
     delete packet->removeControlInfo();
-    macPkt->setSrcAddr(address);
+    macPkt->setSrcAddr(interfaceEntry->getMacAddress());
 
     packet->insertAtFront(macPkt);
     packet->addTagIfAbsent<inet::PacketProtocolTag>()->setProtocol(&Protocol::ieee802154);
-
     EV_DETAIL << "pkt encapsulated, length: " << macPkt->getChunkLength() << "\n";
     executeMac(EV_SEND_REQUEST, packet);
 }
@@ -222,11 +201,6 @@ void Ieee802154Mac::updateStatusIdle(t_mac_event event, cMessage *msg)
         case EV_SEND_REQUEST:
             if (macQueue.size() < queueLength) {
                 macQueue.push_back(static_cast<Packet *>(msg));
-                // EV_DETAIL << "(1) FSM State IDLE_1, EV_SEND_REQUEST and [TxBuff avail]: startTimerBackOff -> BACKOFF." << endl;
-                // updateMacState(BACKOFF_2);
-                // NB = 0;
-                // //BE = macMinBE;
-                // startTimer(TIMER_BACKOFF);
 		EV_DETAIL
                              << "(1) FSM State IDLE_1, EV_SEND_REQUEST and [TxBuff avail]: enter random slack period. "
                              << endl;
@@ -257,12 +231,6 @@ void Ieee802154Mac::updateStatusIdle(t_mac_event event, cMessage *msg)
             sendUp(msg);
             nbRxFrames++;
             delete msg;
-
-            // if (useMACAcks) {
-            //     radio->setRadioMode(IRadio::RADIO_MODE_TRANSMITTER);
-            //     updateMacState(WAITSIFS_6);
-            //     startTimer(TIMER_SIFS);
-            // }
             break;
 
         case EV_BROADCAST_RECEIVED:
@@ -270,7 +238,6 @@ void Ieee802154Mac::updateStatusIdle(t_mac_event event, cMessage *msg)
             nbRxFrames++;
             decapsulate(check_and_cast<Packet *>(msg));
             sendUp(msg);
-            //delete msg;
             break;
 
         default:
@@ -473,7 +440,6 @@ void Ieee802154Mac::updateStatusTransmitFrame(t_mac_event event, cMessage *msg)
         const auto& csmaHeader = packet->peekAtFront<Ieee802154MacHeader>();
         radio->setRadioMode(IRadio::RADIO_MODE_RECEIVER);
 
-        //bool expectAck = useMACAcks;
         if (!csmaHeader->getDestAddr().isBroadcast() && !csmaHeader->getDestAddr().isMulticast()) {
             //unicast
             EV_DETAIL << "(4) FSM State TRANSMITFRAME_4, "
@@ -483,26 +449,18 @@ void Ieee802154Mac::updateStatusTransmitFrame(t_mac_event event, cMessage *msg)
             //broadcast
             EV_DETAIL << "(27) FSM State TRANSMITFRAME_4, EV_FRAME_TRANSMITTED "
                       << " [Broadcast]";
-            // expectAck = false;
         }
 
-        // if (expectAck) {
-        //     EV_DETAIL << "RadioSetupRx -> WAITACK." << endl;
-        //     updateMacState(WAITACK_5);
-        //     startTimer(TIMER_RX_ACK);
-        // }
-        // else {
-            EV_DETAIL << ": RadioSetupRx, manageQueue..." << endl;
-            macQueue.pop_front();
-            delete packet;
-            manageQueue();
+        EV_DETAIL << ": RadioSetupRx, manageQueue..." << endl;
+        macQueue.pop_front();
+        delete packet;
+        manageQueue();
 
-	            // notify upperlayer that the transmission is complete
+	    // Notify upper-layer that the transmission is complete.
         cMessage *transmission_complete = new cMessage("transmission-complete");
         transmission_complete->setKind(TRANSMISSION_COMPLETE);
         send(transmission_complete, upperLayerOutGateId);
-	
-	    //        }
+
         delete msg;
     }
     else {
@@ -566,11 +524,6 @@ void Ieee802154Mac::manageMissingAck(t_mac_event    /*event*/, cMessage *    /*m
         cMessage *mac = macQueue.front();
         macQueue.pop_front();
         txAttempts = 0;
-        // PacketDropDetails details;
-        // details.setReason(RETRY_LIMIT_REACHED);
-        // details.setLimit(macMaxFrameRetries);
-        // emit(packetDroppedSignal, mac, &details);
-        // emit(linkBrokenSignal, mac);
         delete mac;
     }
     manageQueue();
@@ -642,10 +595,6 @@ void Ieee802154Mac::updateStatusNotIdle(cMessage *msg)
         EV_DETAIL << "(22) FSM State NOT IDLE, EV_SEND_REQUEST"
                   << " and [TxBuff not avail]: dropping packet and don't move."
                   << endl;
-        // PacketDropDetails details;
-        // details.setReason(QUEUE_OVERFLOW);
-        // details.setLimit(queueLength);
-        // emit(packetDroppedSignal, msg, &details);
         delete msg;
     }
 }
@@ -771,18 +720,7 @@ void Ieee802154Mac::startTimer(t_mac_timer timer)
                   << "(rxSetupTime,ccaDetectionTime:" << rxSetupTime
                   << "," << ccaDetectionTime << ")." << endl;
         scheduleAt(simTime() + rxSetupTime + ccaDetectionTime, ccaTimer);
-    }
-    // else if (timer == TIMER_SIFS) {
-    //     assert(useMACAcks);
-    //     EV_DETAIL << "(startTimer) sifsTimer value=" << sifs << endl;
-    //     scheduleAt(simTime() + sifs, sifsTimer);
-    // }
-    // else if (timer == TIMER_RX_ACK) {
-    //     assert(useMACAcks);
-    //     EV_DETAIL << "(startTimer) rxAckTimer value=" << macAckWaitDuration << endl;
-    //     scheduleAt(simTime() + macAckWaitDuration, rxAckTimer);
-    // }
-    else if (timer == TIMER_RAND_SLACK) {
+    } else if (timer == TIMER_RAND_SLACK) {
         SimTime slack = SimTime(intuniform(0, maxRandSlack), SIMTIME_MS);
         EV_DETAIL << "(startTimer) slack length = " << slack.str() << endl;
         if (rsTimer->isScheduled()) {
@@ -884,6 +822,7 @@ void Ieee802154Mac::handleLowerPacket(Packet *packet)
     const MacAddress& src = csmaHeader->getSrcAddr();
     const MacAddress& dest = csmaHeader->getDestAddr();
     long ExpectedNr = 0;
+    MacAddress address = interfaceEntry->getMacAddress();
 
     EV_DETAIL << "Received frame name= " << csmaHeader->getName()
               << ", myState=" << macState << " src=" << src
@@ -989,10 +928,6 @@ void Ieee802154Mac::decapsulate(Packet *packet)
 {
     const auto& csmaHeader = packet->popAtFront<Ieee802154MacHeader>();
     packet->addTagIfAbsent<MacAddressInd>()->setSrcAddress(csmaHeader->getSrcAddr());
-//    packet->addTagIfAbsent<InterfaceInd>()->setInterfaceId(interfaceEntry->getInterfaceId());
-//    auto payloadProtocol = ProtocolGroup::ethertype.getProtocol(csmaHeader->getNetworkProtocol());
-//    packet->addTagIfAbsent<DispatchProtocolReq>()->setProtocol(payloadProtocol);
-//    packet->addTagIfAbsent<PacketProtocolTag>()->setProtocol(payloadProtocol);
 }
 
 } // namespace scentssim

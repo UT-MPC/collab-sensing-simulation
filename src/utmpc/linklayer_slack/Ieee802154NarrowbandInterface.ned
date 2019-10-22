@@ -23,11 +23,13 @@
 package scentssim.utmpc.linklayer_slack;
 
 import inet.linklayer.contract.IWirelessInterface;
+import inet.networklayer.common.InterfaceEntry;
 import inet.physicallayer.contract.packetlevel.IRadio;
 
-module Ieee802154NarrowbandInterface like IWirelessInterface
+module Ieee802154NarrowbandInterface extends InterfaceEntry like IWirelessInterface
 {
     parameters:
+        @class(::inet::InterfaceEntry);
         string interfaceTableModule;
         string energySourceModule = default("");
         *.interfaceTableModule = default(absPath(interfaceTableModule));

@@ -96,6 +96,11 @@ public:
     virtual void receiveSignal(cComponent *source, simsignal_t signalID,
             long value, cObject *details) override;
 
+    // OperationalBase:
+    virtual void handleStartOperation(LifecycleOperation *operation) override {}    //TODO implementation
+    virtual void handleStopOperation(LifecycleOperation *operation) override {}    //TODO implementation
+    virtual void handleCrashOperation(LifecycleOperation *operation) override {}    //TODO implementation
+
 protected:
     typedef std::list<Packet *> MacQueue;
 
@@ -194,9 +199,6 @@ protected:
     t_mac_states macState;
     t_mac_status status;
 
-    /** @brief The MAC address of the interface. */
-    MacAddress address;
-
     /** @brief The radio. */
     physicallayer::IRadio *radio;
     physicallayer::IRadio::TransmissionState transmissionState;
@@ -278,10 +280,8 @@ protected:
 
 protected:
     /** @brief Generate new interface address*/
-    virtual void initializeMacAddress();
-    virtual InterfaceEntry *createInterfaceEntry() override;
-    virtual void handleCommand(cMessage *msg) {
-    }
+    virtual void configureInterfaceEntry() override;
+    virtual void handleCommand(cMessage *msg) {}
 
     virtual void flushQueue();
 
