@@ -3,12 +3,14 @@
 
 ## Getting Started
 
-**(Oct 2019) Updated the simulator to work with OMNeT(v5.5.1) and INeT(v4.1.1).**
+**(Jan 2020) Updated the simulator to work with OMNeT(v5.6) and INeT(v4.2)**
+
+(Oct 2019) Updated the simulator to work with OMNeT(v5.5.1) and INeT(v4.1.1).
 
 ### Prerequisites
-- [OMNeT++ v5.5.1](https://omnetpp.org/download/)]
+- [OMNeT++ v5.6](https://omnetpp.org/download/)
 
-- [INeT Framework v4.1.1-ce69d088d](https://github.com/inet-framework/inet)
+- [INeT Framework v4.2](https://github.com/inet-framework/inet)
 
 - [Eigen3](http://eigen.tuxfamily.org) C++ template library for linear algebra.
 
